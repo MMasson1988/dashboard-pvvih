@@ -1,0 +1,13 @@
+name: dashboard-pvvih
+title: dashboard-pvvih
+username: dashboadcaris
+account: dashboadcaris
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15137338
+bundleId: 10694174
+url: https://dashboadcaris.shinyapps.io/dashboard-pvvih/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|.Rprofile|data_hiv_geo.xlsx|renv.lock
