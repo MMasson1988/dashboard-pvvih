@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-========
-# --- SETUP ---
-# Load required libraries
 library(shiny)
 library(shinydashboard)
 library(ggplot2)
@@ -20,8 +16,6 @@ library(tidyr)
 
 # --- CHARGEMENT DES DONNÉES ---
 df <- readxl::read_excel("data_hiv.xlsx", sheet = "Sheet1")
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
-
 # --- UI ---
 ui <- dashboardPage(
     skin = "purple",
@@ -33,8 +27,8 @@ ui <- dashboardPage(
             selectInput("arv", "Filtrer par ARV:", choices = c("Tous", unique(df$type_arv)), selected = "Tous"),
             selectInput("proximite", "Proximité clinique:", choices = c("Tous", unique(df$acces_clinique_proximite)), selected = "Tous"),
             selectInput("agent", "Choisir un agent de terrain:", choices = c("Moise" = "+50940317880", "Masson" = "+50941743538", "Cassion" = "+50949163700"), selected = "+50940317880"),
-            actionButton("verif_risque", "🚨 Vérifier les risques PVVIH", class = "btn-danger"),
-            actionButton("send_whatsapp", "📱 Envoyer WhatsApp", class = "btn-success")
+            actionButton("verif_risque", "Verifier les risques PVVIH", class = "btn-danger"),
+            actionButton("send_whatsapp", "Envoyer WhatsApp", class = "btn-success")
         )
     ),
     dashboardBody(
@@ -82,7 +76,8 @@ server <- function(input, output, session) {
         if (input$proximite != "Tous") df_filtered <- df_filtered %>% filter(acces_clinique_proximite == input$proximite)
         df_filtered
     })
-        observeEvent(input$verif_risque, {
+    
+    observeEvent(input$verif_risque, {
         showModal(modalDialog(
             title = "Confirmation",
             "Voulez-vous afficher la liste des PVVIH à risque élevé ?",
@@ -100,22 +95,17 @@ server <- function(input, output, session) {
         
         if (nrow(high_risk) > 0) {
             showModal(modalDialog(
-<<<<<<< HEAD
-                title = div("🤖 PVVIH à Risque Élevé", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
+                title = div("PVVIH à Risque Elevé", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
                 HTML(paste0("<p style='font-size:16px;'>Nous avons détecté <strong>", nrow(high_risk), "</strong> patient(s) à <span style='color:red;font-weight:bold;'>risque élevé</span>.</p>")),
-=======
-                title = div("p$ PVVIH C  Risque C	levC)", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
-                HTML(paste0("<p style='font-size:16px;'>Nous avons détecté <strong>", nrow(high_risk), "</strong> patient(s) C  <span style='color:red;font-weight:bold;'>risque élevé</span>.</p>")),
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
                 DTOutput("table_popup"),
                 br(),
                 tags$div(style = "display:flex; gap:10px;",
-                         downloadButton("download_csv", "⬇️ CSV", class = "btn btn-info"),
-                         downloadButton("download_excel", "⬇️ Excel", class = "btn btn-success")
+                         downloadButton("download_csv", "CSV", class = "btn btn-info"),
+                         downloadButton("download_excel", "Excel", class = "btn btn-success")
                 ),
                 easyClose = TRUE,
                 size = "l",
-                footer = modalButton("❌ Fermer")
+                footer = modalButton("Fermer")
             ))
             
             output$table_popup <- renderDT({
@@ -123,11 +113,7 @@ server <- function(input, output, session) {
             })
         } else {
             showModal(modalDialog(
-<<<<<<< HEAD
-                title = div("🎉 Aucun risque détecté", style = "font-weight: bold; color: green"),
-=======
-                title = div("p	 Aucun risque détecté", style = "font-weight: bold; color: green"),
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
+                title = div("Aucun risque détecté", style = "font-weight: bold; color: green"),
                 HTML("<p style='font-size:16px;'>Aucun patient à risque élevé selon les filtres sélectionnés.</p>"),
                 easyClose = TRUE,
                 footer = modalButton("Fermer")
@@ -168,11 +154,7 @@ server <- function(input, output, session) {
     
     output$agePlot <- renderPlotly({
         plot_ly(data_filtered(), x = ~age, type = "histogram", marker = list(color = "#6a1b9a")) %>%
-<<<<<<< HEAD
-            layout(title = "Distribution des âges", xaxis = list(title = "Âge"))
-=======
-            layout(title = "Distribution des âges", xaxis = list(title = "Cge"))
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
+            layout(title = "Distribution des âges", xaxis = list(title = "Age"))
     })
     
     output$detectablePlot <- renderPlotly({
@@ -225,20 +207,12 @@ server <- function(input, output, session) {
             return()
         }
         if (nb_patients == 0) {
-<<<<<<< HEAD
             showNotification("Aucun patient à risque élevé à signaler.", type = "warning")
-=======
-            showNotification("Aucun patient à risque élevé C  signaler.", type = "warning")
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
             return()
         }
         list_patients <- paste0("- ", high_risk$patient_id, " (", high_risk$sexe, ") (", high_risk$commune, ")", collapse = "\n")
         message_txt <- paste0("Bonjour, vous avez ", nb_patients,
-<<<<<<< HEAD
                               " patients PVVIH à risque élevé à suivre :\n\n",
-=======
-                              " patients PVVIH à risque élevé C  suivre :\n\n",
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
                               list_patients,
                               "\n\nMerci de vérifier le dashboard CarisCareTrack.")
         message_url <- URLencode(message_txt, reserved = TRUE)
@@ -251,11 +225,7 @@ server <- function(input, output, session) {
         data_race <- df %>%
             mutate(
                 date = lubridate::floor_date(date_derniere_visite, "month"),
-<<<<<<< HEAD
                 date_label = format(date, "%B-%Y")
-=======
-                date_label = format(date, "%B-%Y")  # Format français
->>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
             ) %>%
             group_by(sexe, date_label) %>%
             summarise(n = n(), .groups = "drop") %>%
@@ -281,10 +251,6 @@ server <- function(input, output, session) {
             theme(plot.margin = margin(5.5, 40, 5.5, 5.5))
         
         anim <- animate(p, renderer = gifski_renderer(), width = 600, height = 400, res = 96)
-        
-        # ✅ CRÉATION DU DOSSIER www S'IL N'EXISTE PAS
-        if (!dir.exists("www")) dir.create("www")
-        
         anim_save("www/bar_chart_race.gif", animation = anim)
         
         list(
@@ -300,3 +266,4 @@ server <- function(input, output, session) {
 
 # --- RUN APP ---
 shinyApp(ui, server)
+
