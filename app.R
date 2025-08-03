@@ -13,54 +13,65 @@ library(writexl)
 library(gganimate)
 library(gifski)
 library(tidyr)
+library(shinymanager) # AJOUT
 
 # --- CHARGEMENT DES DONNÉES ---
 df <- readxl::read_excel("data_hiv.xlsx", sheet = "Sheet1")
+
+# --- AJOUT : Définition des utilisateurs ---
+credentials <- data.frame(
+    user = c("admin", "user1"),
+    password = c("adminpass", "userpass"), # à personnaliser
+    stringsAsFactors = FALSE
+)
+
 # --- UI ---
-ui <- dashboardPage(
-    skin = "purple",
-    dashboardHeader(title = "CarisCareTrack"),
-    dashboardSidebar(
-        sidebarMenu(
-            menuItem("Vue d'ensemble", tabName = "dashboard", icon = icon("dashboard")),
-            selectInput("niveau_risque", "Filtrer par risque:", choices = c("Tous", unique(df$niveau_risque)), selected = "Tous"),
-            selectInput("arv", "Filtrer par ARV:", choices = c("Tous", unique(df$type_arv)), selected = "Tous"),
-            selectInput("proximite", "Proximité clinique:", choices = c("Tous", unique(df$acces_clinique_proximite)), selected = "Tous"),
-            selectInput("agent", "Choisir un agent de terrain:", choices = c("Moise" = "+50940317880", "Masson" = "+50941743538", "Cassion" = "+50949163700"), selected = "+50940317880"),
-            actionButton("verif_risque", "Verifier les risques PVVIH", class = "btn-danger"),
-            actionButton("send_whatsapp", "Envoyer WhatsApp", class = "btn-success")
-        )
-    ),
-    dashboardBody(
-        shinyjs::useShinyjs(),
-        fluidRow(valueBoxOutput("totalBox"), valueBoxOutput("risqueBox"), valueBoxOutput("suiviBox")),
-        
-        fluidRow(
-            box("Distribution des âges", status = "primary", solidHeader = TRUE, plotlyOutput("agePlot"), width = 6),
-            box("Nombre de fois détectable", status = "danger", solidHeader = TRUE, plotlyOutput("detectablePlot"), width = 6)
+ui <- secure_app(
+    dashboardPage(
+        skin = "purple",
+        dashboardHeader(title = "CarisCareTrack"),
+        dashboardSidebar(
+            sidebarMenu(
+                menuItem("Vue d'ensemble", tabName = "dashboard", icon = icon("dashboard")),
+                selectInput("niveau_risque", "Filtrer par risque:", choices = c("Tous", unique(df$niveau_risque)), selected = "Tous"),
+                selectInput("arv", "Filtrer par ARV:", choices = c("Tous", unique(df$type_arv)), selected = "Tous"),
+                selectInput("proximite", "Proximité clinique:", choices = c("Tous", unique(df$acces_clinique_proximite)), selected = "Tous"),
+                selectInput("agent", "Choisir un agent de terrain:", choices = c("Moise" = "+50940317880", "Masson" = "+50941743538", "Cassion" = "+50949163700"), selected = "+50940317880"),
+                actionButton("verif_risque", "Verifier les risques PVVIH", class = "btn-danger"),
+                actionButton("send_whatsapp", "Envoyer WhatsApp", class = "btn-success")
+            )
         ),
-        
-        fluidRow(
-            box("Type d'ARV", status = "success", solidHeader = TRUE, plotlyOutput("arvPlot"), width = 6),
-            box("Charge virale vs Risque", status = "warning", solidHeader = TRUE, plotlyOutput("riskPlot"), width = 6)
-        ),
-        
-        fluidRow(
-            box(
-                title = "Bar Chart Race - Sexe / Mois",
-                status = "success",
-                solidHeader = TRUE,
-                width = 6,
-                style = "height: 420px;",
-                imageOutput("racePlot", height = "400px")
+        dashboardBody(
+            shinyjs::useShinyjs(),
+            fluidRow(valueBoxOutput("totalBox"), valueBoxOutput("risqueBox"), valueBoxOutput("suiviBox")),
+            
+            fluidRow(
+                box("Distribution des âges", status = "primary", solidHeader = TRUE, plotlyOutput("agePlot"), width = 6),
+                box("Nombre de fois détectable", status = "danger", solidHeader = TRUE, plotlyOutput("detectablePlot"), width = 6)
             ),
-            box(
-                title = "Carte des patients",
-                status = "info",
-                solidHeader = TRUE,
-                width = 6,
-                style = "height: 420px;",
-                leafletOutput("mapPlot", height = "400px")
+            
+            fluidRow(
+                box("Type d'ARV", status = "success", solidHeader = TRUE, plotlyOutput("arvPlot"), width = 6),
+                box("Charge virale vs Risque", status = "warning", solidHeader = TRUE, plotlyOutput("riskPlot"), width = 6)
+            ),
+            
+            fluidRow(
+                box(
+                    title = "Bar Chart Race - Sexe / Mois",
+                    status = "success",
+                    solidHeader = TRUE,
+                    width = 6,
+                    style = "height: 420px;",
+                    imageOutput("racePlot", height = "400px")
+                ),
+                box(
+                    title = "Carte des patients",
+                    status = "info",
+                    solidHeader = TRUE,
+                    width = 6,
+                    style = "height: 420px;",
+                    leafletOutput("mapPlot", height = "400px")
+                )
             )
         )
     )
@@ -68,6 +79,9 @@ ui <- dashboardPage(
 
 # --- SERVER ---
 server <- function(input, output, session) {
+    res_auth <- shinymanager::secure_server(
+        check_credentials = shinymanager::check_credentials(credentials)
+    )
     
     data_filtered <- reactive({
         df_filtered <- df
@@ -260,10 +274,7 @@ server <- function(input, output, session) {
             height = 400
         )
     }, deleteFile = FALSE)
-    
-    
 }
 
 # --- RUN APP ---
 shinyApp(ui, server)
-
