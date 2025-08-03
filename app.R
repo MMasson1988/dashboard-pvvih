@@ -1,25 +1,26 @@
-setwd("C:/Users/moise/Downloads/dashboard-pvvih")
-
-check_and_install <- function(pkgs) {
-    for (pkg in pkgs) {
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            install.packages(pkg)
-        }
-        library(pkg, character.only = TRUE)
-    }
-}
-
-check_and_install(c(
-    "shiny", "shinydashboard", "ggplot2", "dplyr", "readxl", "plotly",
-    "lubridate", "leaflet", "shinyWidgets", "DT", "shinyjs", "writexl",
-    "gganimate", "gifski", "tidyr"
-))
-
-if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
-renv::snapshot()
+<<<<<<< HEAD
+========
+# --- SETUP ---
+# Load required libraries
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(plotly)
+library(lubridate)
+library(leaflet)
+library(shinyWidgets)
+library(DT)
+library(shinyjs)
+library(writexl)
+library(gganimate)
+library(gifski)
+library(tidyr)
 
 # --- CHARGEMENT DES DONNÉES ---
-df <- read_excel("data_hiv.xlsx", sheet = "Sheet1")
+df <- readxl::read_excel("data_hiv.xlsx", sheet = "Sheet1")
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
 
 # --- UI ---
 ui <- dashboardPage(
@@ -81,8 +82,7 @@ server <- function(input, output, session) {
         if (input$proximite != "Tous") df_filtered <- df_filtered %>% filter(acces_clinique_proximite == input$proximite)
         df_filtered
     })
-    
-    observeEvent(input$verif_risque, {
+        observeEvent(input$verif_risque, {
         showModal(modalDialog(
             title = "Confirmation",
             "Voulez-vous afficher la liste des PVVIH à risque élevé ?",
@@ -100,8 +100,13 @@ server <- function(input, output, session) {
         
         if (nrow(high_risk) > 0) {
             showModal(modalDialog(
+<<<<<<< HEAD
                 title = div("🤖 PVVIH à Risque Élevé", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
                 HTML(paste0("<p style='font-size:16px;'>Nous avons détecté <strong>", nrow(high_risk), "</strong> patient(s) à <span style='color:red;font-weight:bold;'>risque élevé</span>.</p>")),
+=======
+                title = div("p$ PVVIH C  Risque C	levC)", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
+                HTML(paste0("<p style='font-size:16px;'>Nous avons détecté <strong>", nrow(high_risk), "</strong> patient(s) C  <span style='color:red;font-weight:bold;'>risque élevé</span>.</p>")),
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
                 DTOutput("table_popup"),
                 br(),
                 tags$div(style = "display:flex; gap:10px;",
@@ -118,7 +123,11 @@ server <- function(input, output, session) {
             })
         } else {
             showModal(modalDialog(
+<<<<<<< HEAD
                 title = div("🎉 Aucun risque détecté", style = "font-weight: bold; color: green"),
+=======
+                title = div("p	 Aucun risque détecté", style = "font-weight: bold; color: green"),
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
                 HTML("<p style='font-size:16px;'>Aucun patient à risque élevé selon les filtres sélectionnés.</p>"),
                 easyClose = TRUE,
                 footer = modalButton("Fermer")
@@ -159,7 +168,11 @@ server <- function(input, output, session) {
     
     output$agePlot <- renderPlotly({
         plot_ly(data_filtered(), x = ~age, type = "histogram", marker = list(color = "#6a1b9a")) %>%
+<<<<<<< HEAD
             layout(title = "Distribution des âges", xaxis = list(title = "Âge"))
+=======
+            layout(title = "Distribution des âges", xaxis = list(title = "Cge"))
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
     })
     
     output$detectablePlot <- renderPlotly({
@@ -212,12 +225,20 @@ server <- function(input, output, session) {
             return()
         }
         if (nb_patients == 0) {
+<<<<<<< HEAD
             showNotification("Aucun patient à risque élevé à signaler.", type = "warning")
+=======
+            showNotification("Aucun patient à risque élevé C  signaler.", type = "warning")
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
             return()
         }
         list_patients <- paste0("- ", high_risk$patient_id, " (", high_risk$sexe, ") (", high_risk$commune, ")", collapse = "\n")
         message_txt <- paste0("Bonjour, vous avez ", nb_patients,
+<<<<<<< HEAD
                               " patients PVVIH à risque élevé à suivre :\n\n",
+=======
+                              " patients PVVIH à risque élevé C  suivre :\n\n",
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
                               list_patients,
                               "\n\nMerci de vérifier le dashboard CarisCareTrack.")
         message_url <- URLencode(message_txt, reserved = TRUE)
@@ -230,7 +251,11 @@ server <- function(input, output, session) {
         data_race <- df %>%
             mutate(
                 date = lubridate::floor_date(date_derniere_visite, "month"),
+<<<<<<< HEAD
                 date_label = format(date, "%B-%Y")
+=======
+                date_label = format(date, "%B-%Y")  # Format français
+>>>>>>> 5a3609936c85ce5bc856a0304025fa01c556f2b8
             ) %>%
             group_by(sexe, date_label) %>%
             summarise(n = n(), .groups = "drop") %>%
