@@ -1,25 +1,22 @@
 # --- SETUP ---
-#setwd("C:/Users/moise/Downloads/dashboard-pvvih")
+# Load required libraries
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(plotly)
+library(lubridate)
+library(leaflet)
+library(shinyWidgets)
+library(DT)
+library(shinyjs)
+library(writexl)
+library(gganimate)
+library(gifski)
+library(tidyr)
 
-check_and_install <- function(pkgs) {
-    for (pkg in pkgs) {
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            install.packages(pkg)
-        }
-        library(pkg, character.only = TRUE)
-    }
-}
-
-check_and_install(c(
-    "shiny", "shinydashboard", "ggplot2", "dplyr", "readxl", "plotly",
-    "lubridate", "leaflet", "shinyWidgets", "DT", "shinyjs", "writexl",
-    "gganimate", "gifski", "tidyr"
-))
-
-if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
-renv::snapshot()
-
-# --- CHARGEMENT DES DONNC	ES ---
+# --- CHARGEMENT DES DONNÉES ---
 df <- readxl::read_excel("data_hiv.xlsx", sheet = "Sheet1")
 
 # --- UI ---
@@ -31,7 +28,7 @@ ui <- dashboardPage(
             menuItem("Vue d'ensemble", tabName = "dashboard", icon = icon("dashboard")),
             selectInput("niveau_risque", "Filtrer par risque:", choices = c("Tous", unique(df$niveau_risque)), selected = "Tous"),
             selectInput("arv", "Filtrer par ARV:", choices = c("Tous", unique(df$type_arv)), selected = "Tous"),
-            selectInput("proximite", "ProximitC) clinique:", choices = c("Tous", unique(df$acces_clinique_proximite)), selected = "Tous"),
+            selectInput("proximite", "Proximité clinique:", choices = c("Tous", unique(df$acces_clinique_proximite)), selected = "Tous"),
             selectInput("agent", "Choisir un agent de terrain:", choices = c("Moise" = "+50940317880", "Masson" = "+50941743538", "Cassion" = "+50949163700"), selected = "+50940317880"),
             actionButton("verif_risque", "p( VC)rifier les risques PVVIH", class = "btn-danger"),
             actionButton("send_whatsapp", "p1 Envoyer WhatsApp", class = "btn-success")
@@ -42,8 +39,8 @@ ui <- dashboardPage(
         fluidRow(valueBoxOutput("totalBox"), valueBoxOutput("risqueBox"), valueBoxOutput("suiviBox")),
         
         fluidRow(
-            box("Distribution des C"ges", status = "primary", solidHeader = TRUE, plotlyOutput("agePlot"), width = 6),
-            box("Nombre de fois dC)tectable", status = "danger", solidHeader = TRUE, plotlyOutput("detectablePlot"), width = 6)
+            box("Distribution des âges", status = "primary", solidHeader = TRUE, plotlyOutput("agePlot"), width = 6),
+            box("Nombre de fois détectable", status = "danger", solidHeader = TRUE, plotlyOutput("detectablePlot"), width = 6)
         ),
         
         fluidRow(
@@ -86,7 +83,7 @@ server <- function(input, output, session) {
     observeEvent(input$verif_risque, {
         showModal(modalDialog(
             title = "Confirmation",
-            "Voulez-vous afficher la liste des PVVIH C  risque C)levC) ?",
+            "Voulez-vous afficher la liste des PVVIH à risque élevé ?",
             easyClose = TRUE,
             footer = tagList(
                 actionButton("afficher_risques", "Oui", class = "btn btn-danger"),
@@ -102,7 +99,7 @@ server <- function(input, output, session) {
         if (nrow(high_risk) > 0) {
             showModal(modalDialog(
                 title = div("p$ PVVIH C  Risque C	levC)", style = "font-weight:bold;font-size:18px;color:#c0392b;"),
-                HTML(paste0("<p style='font-size:16px;'>Nous avons dC)tectC) <strong>", nrow(high_risk), "</strong> patient(s) C  <span style='color:red;font-weight:bold;'>risque C)levC)</span>.</p>")),
+                HTML(paste0("<p style='font-size:16px;'>Nous avons détecté <strong>", nrow(high_risk), "</strong> patient(s) C  <span style='color:red;font-weight:bold;'>risque élevé</span>.</p>")),
                 DTOutput("table_popup"),
                 br(),
                 tags$div(style = "display:flex; gap:10px;",
@@ -119,8 +116,8 @@ server <- function(input, output, session) {
             })
         } else {
             showModal(modalDialog(
-                title = div("p	 Aucun risque dC)tectC)", style = "font-weight: bold; color: green"),
-                HTML("<p style='font-size:16px;'>Aucun patient C  risque C)levC) selon les filtres sC)lectionnC)s.</p>"),
+                title = div("p	 Aucun risque détecté", style = "font-weight: bold; color: green"),
+                HTML("<p style='font-size:16px;'>Aucun patient à risque élevé selon les filtres sélectionnés.</p>"),
                 easyClose = TRUE,
                 footer = modalButton("Fermer")
             ))
@@ -149,23 +146,23 @@ server <- function(input, output, session) {
         high_risk <- data_filtered() %>% filter(niveau_risque == "C	levC)")
         valueBox(
             paste0(round(nrow(high_risk) / nrow(data_filtered()) * 100, 1), "%"),
-            "C  risque C)levC)", icon = icon("exclamation-triangle"), color = "red"
+            "à risque élevé", icon = icon("exclamation-triangle"), color = "red"
         )
     })
     
     output$suiviBox <- renderValueBox({
         faible_suivi <- data_filtered() %>% filter(nombre_visites_medicales <= 2)
-        valueBox(nrow(faible_suivi), "Suivi mC)dical faible", icon = icon("stethoscope"), color = "orange")
+        valueBox(nrow(faible_suivi), "Suivi médical faible", icon = icon("stethoscope"), color = "orange")
     })
     
     output$agePlot <- renderPlotly({
         plot_ly(data_filtered(), x = ~age, type = "histogram", marker = list(color = "#6a1b9a")) %>%
-            layout(title = "Distribution des C"ges", xaxis = list(title = "Cge"))
+            layout(title = "Distribution des âges", xaxis = list(title = "Cge"))
     })
     
     output$detectablePlot <- renderPlotly({
         plot_ly(data_filtered(), y = ~nb_fois_detectable, type = "box", color = ~niveau_risque, colors = "Set1") %>%
-            layout(title = "Nombre de fois dC)tectable par niveau de risque")
+            layout(title = "Nombre de fois détectable par niveau de risque")
     })
     
     output$arvPlot <- renderPlotly({
@@ -177,14 +174,14 @@ server <- function(input, output, session) {
     output$riskPlot <- renderPlotly({
         plot_ly(data_filtered(), x = ~niveau_risque, y = ~duree_detectable_mois, type = "box",
                 color = ~niveau_risque, colors = "Set2") %>%
-            layout(title = "Charge virale dC)tectable vs niveau de risque")
+            layout(title = "Charge virale détectable vs niveau de risque")
     })
     
     output$mapPlot <- renderLeaflet({
         data_geo <- data_filtered() %>% filter(!is.na(latitude), !is.na(longitude))
         if (nrow(data_geo) == 0) {
             leaflet() %>% addTiles() %>%
-                addPopups(0, 0, "Aucun point gC)ographique disponible avec les filtres actuels.")
+                addPopups(0, 0, "Aucun point géographique disponible avec les filtres actuels.")
         } else {
             pal <- colorFactor(palette = c("green", "orange", "red"), domain = data_geo$niveau_risque)
             leaflet(data_geo) %>%
@@ -196,7 +193,7 @@ server <- function(input, output, session) {
                     popup = ~htmltools::HTML(paste0(
                         "<strong>Sexe:</strong> ", sexe, "<br/>",
                         "<strong>Commune:</strong> ", commune, "<br/>",
-                        "<strong>RC)gion:</strong> ", region, "<br/>",
+                        "<strong>Région:</strong> ", region, "<br/>",
                         "<strong>Risque:</strong> ", niveau_risque
                     ))
                 ) %>%
@@ -213,14 +210,14 @@ server <- function(input, output, session) {
             return()
         }
         if (nb_patients == 0) {
-            showNotification("Aucun patient C  risque C)levC) C  signaler.", type = "warning")
+            showNotification("Aucun patient à risque élevé C  signaler.", type = "warning")
             return()
         }
         list_patients <- paste0("- ", high_risk$patient_id, " (", high_risk$sexe, ") (", high_risk$commune, ")", collapse = "\n")
         message_txt <- paste0("Bonjour, vous avez ", nb_patients,
-                              " patients PVVIH C  risque C)levC) C  suivre :\n\n",
+                              " patients PVVIH à risque élevé C  suivre :\n\n",
                               list_patients,
-                              "\n\nMerci de vC)rifier le dashboard CarisCareTrack.")
+                              "\n\nMerci de vérifier le dashboard CarisCareTrack.")
         message_url <- URLencode(message_txt, reserved = TRUE)
         phone <- gsub("\\+", "", input$agent)
         wa_url <- paste0("https://wa.me/", phone, "?text=", message_url)
@@ -231,7 +228,7 @@ server <- function(input, output, session) {
         data_race <- df %>%
             mutate(
                 date = lubridate::floor_date(date_derniere_visite, "month"),
-                date_label = format(date, "%B-%Y")  # Format franC'ais
+                date_label = format(date, "%B-%Y")  # Format français
             ) %>%
             group_by(sexe, date_label) %>%
             summarise(n = n(), .groups = "drop") %>%
