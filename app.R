@@ -20,8 +20,8 @@ df <- readxl::read_excel("data_hiv.xlsx", sheet = "Sheet1")
 
 # --- AJOUT : Définition des utilisateurs ---
 credentials <- data.frame(
-    user = c("admin", "user1"),
-    password = c("adminpass", "userpass"), # à personnaliser
+    user = c("admin", "caris1234"), # à personnaliser
+    password = c("adminpass", "carishaiti1234"), # à personnaliser
     stringsAsFactors = FALSE
 )
 
