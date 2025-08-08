@@ -5,9 +5,9 @@ account: dashboadcaris
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 15137338
-bundleId: 10694174
-url: https://dashboadcaris.shinyapps.io/dashboard-pvvih/
+bundleId: 10746366
+url: https://massonmoise.shinyapps.io/dashboard-pvvih/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .RData|.Rprofile|data_hiv_geo.xlsx|renv.lock
+ignoredFiles: .RData|.Rprofile|base.R|base2.R|data_hiv_geo.xlsx|renv.lock
