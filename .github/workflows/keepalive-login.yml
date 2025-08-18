@@ -1,0 +1,82 @@
+name: keepalive-shinyapps-with-login
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # toutes les 5 min (UTC)
+  workflow_dispatch:
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    env:
+      SHINYAPP_URL: ${{ secrets.SHINYAPP_URL }}
+      SHINY_USER: ${{ secrets.SHINY_USER }}
+      SHINY_PASS: ${{ secrets.SHINY_PASS }}
+
+    steps:
+      - name: Préparer Node + Playwright
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer Playwright
+        run: |
+          npm init -y
+          npm i playwright@latest
+          npx playwright install --with-deps chromium
+
+      - name: Créer le script de login
+        run: |
+          cat > login_and_warmup.js <<'EOF'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const url  = process.env.SHINYAPP_URL;
+            const user = process.env.SHINY_USER;
+            const pass = process.env.SHINY_PASS;
+
+            if (!url || !user || !pass) {
+              console.error('Missing SHINYAPP_URL/SHINY_USER/SHINY_PASS');
+              process.exit(1);
+            }
+
+            const browser = await chromium.launch({ headless: true });
+            const ctx = await browser.newContext({
+              viewport: { width: 1280, height: 900 }
+            });
+            const page = await ctx.newPage();
+
+            // 1) Aller sur l'app (suivre les redirections jusqu'au worker)
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+
+            // Attendre l’allocation du worker (_w_...) => app réveillée
+            await page.waitForURL(/\/_w_/, { timeout: 120000 }).catch(()=>{});
+
+            // 2) Attendre les champs shinymanager (si l'app est protégée)
+            await page.waitForSelector('#auth-user_id', { timeout: 60000 });
+            await page.fill('#auth-user_id', user);
+            await page.fill('#auth-user_pwd', pass);
+
+            // 3) Cliquer Login
+            await Promise.all([
+              page.click('#auth-go_auth'),
+              // Certaines apps redessinent l’UI après auth :
+              page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(()=>{})
+            ]);
+
+            // 4) Confirmer (si possible) que l’écran d’auth a disparu
+            await page.waitForSelector('#auth-auth-mod', { state: 'detached', timeout: 60000 }).catch(()=>{});
+
+            // 5) Garder 10s pour bien chauffer le serveur
+            await page.waitForTimeout(10000);
+
+            await browser.close();
+            console.log('Warmup and login completed successfully');
+          })().catch(err => {
+            console.error('Warmup/login error:', err);
+            process.exit(1);
+          });
+          EOF
+
+      - name: Lancer le warmup (login)
+        run: node login_and_warmup.js
