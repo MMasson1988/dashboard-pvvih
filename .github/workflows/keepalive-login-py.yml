@@ -1,0 +1,122 @@
+name: keepalive-shinyapps-with-login-py
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # toutes les 5 minutes (UTC)
+  workflow_dispatch:        # exécution manuelle possible
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer Playwright (Chromium)
+        run: |
+          python -m pip install --upgrade pip
+          pip install "playwright>=1.44,<2"
+          python -m playwright install --with-deps chromium
+
+      - name: Ajouter le script Python
+        run: |
+          mkdir -p scripts screenshots
+          cat > scripts/login_and_warmup.py <<'PY'
+          # -*- coding: utf-8 -*-
+          import os, re, time, sys, pathlib
+          from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+          URL   = os.getenv("SHINYAPP_URL")   # ex: https://massonmoise.shinyapps.io/dashboard-pvvih/
+          USER  = os.getenv("SHINY_USER")
+          PASS  = os.getenv("SHINY_PASS")
+
+          if not URL or not USER or not PASS:
+              print("ERREUR: Variables SHINYAPP_URL / SHINY_USER / SHINY_PASS manquantes", file=sys.stderr)
+              sys.exit(1)
+
+          SCREEN_DIR = pathlib.Path("screenshots")
+          SCREEN_DIR.mkdir(exist_ok=True)
+
+          def run():
+              with sync_playwright() as p:
+                  browser = p.chromium.launch(headless=True)
+                  ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+                  page = ctx.new_page()
+
+                  print(f"Ouverture: {URL}")
+                  page.goto(URL, wait_until="domcontentloaded", timeout=120_000)
+
+                  # 1) Attendre l’allocation du worker (_w_...) => instance réveillée
+                  try:
+                      page.wait_for_url(re.compile(r"/_w_[^/]+/"), timeout=120_000)
+                      print("Worker _w_ détecté (instance réveillée).")
+                  except PWTimeout:
+                      print("Pas de redirection _w_; on continue (possible si déjà réveillé).")
+
+                  # 2) Tenter le login shinymanager si l'écran d'auth est présent
+                  def visible(sel, t=3000):
+                      try:
+                          page.wait_for_selector(sel, state="visible", timeout=t)
+                          return True
+                      except PWTimeout:
+                          return False
+
+                  need_login = visible("#auth-user_id", t=5_000) and visible("#auth-user_pwd", t=5_000)
+                  if need_login:
+                      print("Écran shinymanager détecté : saisie des identifiants…")
+                      page.fill("#auth-user_id", USER)
+                      page.fill("#auth-user_pwd", PASS)
+                      # clic Login
+                      with page.expect_navigation(wait_until="domcontentloaded", timeout=60_000) as nav:
+                          page.click("#auth-go_auth")
+                      # Si la page ne navigue pas (certaines apps), ne pas planter :
+                      try:
+                          nav.value
+                      except Exception:
+                          pass
+
+                      # 3) Confirmer la disparition du panneau d'auth si possible
+                      try:
+                          page.wait_for_selector("#auth-auth-mod", state="detached", timeout=60_000)
+                          print("Login réussi (panneau d'auth disparu).")
+                      except PWTimeout:
+                          # parfois l'UI reste mais la session est déjà active ; on tolère
+                          print("Le panneau d'auth ne s'est pas détaché, on continue.")
+                  else:
+                      print("Pas d’écran d’auth détecté (déjà connecté ou app non protégée).")
+
+                  # 4) Rester quelques secondes pour bien “chauffer” la session
+                  time.sleep(10)
+
+                  # Screenshot pour contrôle
+                  shot = SCREEN_DIR / "after_login.png"
+                  page.screenshot(path=str(shot), full_page=True)
+                  print(f"Screenshot enregistré: {shot}")
+
+                  browser.close()
+                  print("Warmup et (éventuel) login terminés avec succès.")
+
+          if __name__ == "__main__":
+              try:
+                  run()
+              except Exception as e:
+                  print(f"Erreur: {e}", file=sys.stderr)
+                  sys.exit(1)
+          PY
+
+      - name: Exécuter le warmup
+        env:
+          SHINYAPP_URL: ${{ secrets.SHINYAPP_URL }}
+          SHINY_USER: ${{ secrets.SHINY_USER }}
+          SHINY_PASS: ${{ secrets.SHINY_PASS }}
+        run: python scripts/login_and_warmup.py
+
+      - name: Sauvegarder les captures (artifacts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keepalive-screens
+          path: screenshots/
